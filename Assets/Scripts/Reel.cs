@@ -15,17 +15,28 @@ public class ReelSimpleLoop : MonoBehaviour
     [SerializeField] private float minStopTime = 2f;
 
     #endregion
-
+public System.Action OnReelStopped;
     #region Private Fields
 
     private float currentSpeed = 0f;
 
     private bool isSpinning = false;
     private bool isStopping = false;
+    private RectTransform[] items;
 
     #endregion
 
     #region Unity Lifecycle
+    private void Awake()
+{
+    int count = container.childCount;
+    items = new RectTransform[count];
+
+    for (int i = 0; i < count; i++)
+    {
+        items[i] = container.GetChild(i).GetComponent<RectTransform>();
+    }
+}
 
     private void Start()
     {
@@ -43,6 +54,14 @@ public class ReelSimpleLoop : MonoBehaviour
             container.anchoredPosition = new Vector2(0f, startY);
         }
     }
+    public float GetNormalizedY()
+{
+    float loopHeight = resetY - startY;
+
+    float normalizedY = startY + Mathf.Repeat(container.anchoredPosition.y - startY, loopHeight);
+
+    return normalizedY;
+}
 
     #endregion
 
@@ -56,7 +75,6 @@ public class ReelSimpleLoop : MonoBehaviour
         DOTween.To(() => currentSpeed, x => currentSpeed = x, maxSpeed, 0.5f)
             .SetEase(Ease.OutQuad);
     }
-
     public void StopSpin()
     {
         if (!isSpinning || isStopping) return;
@@ -65,7 +83,7 @@ public class ReelSimpleLoop : MonoBehaviour
 
         float loopHeight = resetY - startY;
 
-        int index = Random.Range(0, 5);
+        int index = Random.Range(0, 7);
         float baseTarget = startY + (index * gap);
 
         float currentY = container.anchoredPosition.y;
@@ -102,18 +120,34 @@ public class ReelSimpleLoop : MonoBehaviour
         }, targetY, duration)
         .SetEase(Ease.OutCubic)
         .OnComplete(() =>
-        {
-            float finalY = startY + Mathf.Repeat(targetY - startY, loopHeight);
-            container.anchoredPosition = new Vector2(0f, finalY);
+{
+    float finalY = startY + Mathf.Repeat(targetY - startY, loopHeight);
+    container.anchoredPosition = new Vector2(0f, finalY);
 
-            currentSpeed = 0f;
-            isSpinning = false;
-            isStopping = false;
-        });
+    currentSpeed = 0f;
+    isSpinning = false;
+    isStopping = false;
+
+    float normalizedY = GetNormalizedY();
+    OnReelStopped?.Invoke();
+
+    Debug.Log($"{gameObject.name} stopped at Y: {normalizedY}");
+});
 
         DOTween.To(() => currentSpeed, x => currentSpeed = x, 0f, duration)
             .SetEase(Ease.OutCubic);
     }
 
     #endregion
+    public SlotSymbol GetCurrentSymbol()
+{
+    float normalizedY = GetNormalizedY();
+
+    int index = Mathf.RoundToInt((normalizedY - startY) / gap);
+
+    // 🔥 FIX: shift by 1
+    index = (index + 1) % items.Length;
+
+    return items[index].GetComponent<ReelItem>().symbol;
+}
 }
