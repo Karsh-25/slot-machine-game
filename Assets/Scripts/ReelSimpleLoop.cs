@@ -65,7 +65,7 @@ public System.Action OnReelStopped;
 
     #endregion
 
-    #region Public API
+    #region Callable Functions
 
     public void StartSpin()
     {
@@ -139,15 +139,17 @@ public System.Action OnReelStopped;
     }
 
     #endregion
+    #region Get Symbol
     public SlotSymbol GetCurrentSymbol()
 {
     float normalizedY = GetNormalizedY();
 
     int index = Mathf.RoundToInt((normalizedY - startY) / gap);
 
-    // 🔥 FIX: shift by 1
+    
     index = (index + 1) % items.Length;
 
     return items[index].GetComponent<ReelItem>().symbol;
 }
+#endregion
 }
